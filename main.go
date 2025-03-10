@@ -6,8 +6,6 @@ import (
 	"os"
 	"quiz-platform/config"
 	"quiz-platform/routes"
-
-	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
 
@@ -26,17 +24,6 @@ func main() {
 
 	// Set up router
 	router := routes.SetupRouter()
-
-	// Add a root route handler
-	router.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "Quiz Platform API is running",
-			"endpoints": []string{
-				"/api/v1/tryouts",
-				"/api/v1/tryouts/:id",
-			},
-		})
-	})
 
 	// Get port from environment variable or use default
 	port := os.Getenv("PORT")

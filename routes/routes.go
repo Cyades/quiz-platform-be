@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"net/http"
 	"quiz-platform/controllers"
 
 	"github.com/gin-contrib/cors"
@@ -21,9 +20,17 @@ func SetupRouter() *gin.Engine {
 		AllowCredentials: true,
 		AllowWildcard:    true,
 	}))
-
+	
+	// Root route for API health check
 	router.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"message": "Quiz Platform API is running"})
+		c.JSON(200, gin.H{
+			"message": "Quiz Platform API is running",
+			"endpoints": []string{
+				"/api/v1/tryouts",
+				"/api/v1/tryouts/:id",
+				"/api/v1/tryouts/filter/options",
+			},
+		})
 	})
 
 	// API v1 routes
@@ -33,13 +40,15 @@ func SetupRouter() *gin.Engine {
 		tryouts := v1.Group("/tryouts")
 		{
 			tryouts.GET("", controllers.GetAllTryouts)
-			tryouts.GET("/:id", controllers.GetTryout)
 			tryouts.POST("", controllers.CreateTryout)
+			
+			// Helper route for options/filtering - must come before :id route to avoid conflict
+			tryouts.GET("/filter/options", controllers.GetTryoutOptions)
+			
+			// Individual tryout routes with ID parameter
+			tryouts.GET("/:id", controllers.GetTryout)
 			tryouts.PUT("/:id", controllers.UpdateTryout)
 			tryouts.DELETE("/:id", controllers.DeleteTryout)
-
-			// Helper route for options/filtering
-			tryouts.GET("/options", controllers.GetTryoutOptions)
 		}
 	}
 
