@@ -2,13 +2,6 @@
 
 This is the backend component of the Quiz Platform application, built with Go and MongoDB.
 
-## Features
-
-- RESTful API for managing quiz tryouts
-- MongoDB integration for data persistence
-- Complete CRUD operations for tryouts
-- Automatic database seeding with sample data
-
 ## Prerequisites
 
 - Go (v1.16 or later)
