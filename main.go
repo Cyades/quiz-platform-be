@@ -19,9 +19,6 @@ func main() {
 	config.ConnectDB()
 	defer config.CloseDB()
 
-	// Seed database with dummy data if empty
-	config.SeedDummyData()
-
 	// Set up router
 	router := routes.SetupRouter()
 
