@@ -8,13 +8,14 @@ import (
 
 // Tryout represents a quiz/tryout in the platform
 type Tryout struct {
-	ID          primitive.ObjectID `json:"id" bson:"_id,omitempty"`
-	Title       string             `json:"title" bson:"title"`
-	Description string             `json:"description" bson:"description"`
-	Category    string             `json:"category" bson:"category"`
-	Duration    int                `json:"duration" bson:"duration"` // in minutes
-	CreatedAt   time.Time          `json:"createdAt" bson:"createdAt"`
-	UpdatedAt   time.Time          `json:"updatedAt" bson:"updatedAt"`
+	ID            primitive.ObjectID `json:"id" bson:"_id,omitempty"`
+	Title         string             `json:"title" bson:"title"`
+	Description   string             `json:"description" bson:"description"`
+	Category      string             `json:"category" bson:"category"`
+	Duration      int                `json:"duration" bson:"duration"` // in minutes
+	HasSubmission bool               `json:"hasSubmission" bson:"hasSubmission"`
+	CreatedAt     time.Time          `json:"createdAt" bson:"createdAt"`
+	UpdatedAt     time.Time          `json:"updatedAt" bson:"updatedAt"`
 }
 
 // TryoutInput is used for creating or updating a tryout
