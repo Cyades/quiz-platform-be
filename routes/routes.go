@@ -20,7 +20,7 @@ func SetupRouter() *gin.Engine {
 		AllowCredentials: true,
 		AllowWildcard:    true,
 	}))
-	
+
 	// Root route for API health check
 	router.GET("/", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -28,7 +28,8 @@ func SetupRouter() *gin.Engine {
 			"endpoints": []string{
 				"/api/v1/tryouts",
 				"/api/v1/tryouts/:id",
-				"/api/v1/tryouts/filter/options",
+				"/api/v1/tryouts/filter",
+				"/api/v1/tryouts/:id/questions",
 			},
 		})
 	})
@@ -41,14 +42,21 @@ func SetupRouter() *gin.Engine {
 		{
 			tryouts.GET("", controllers.GetAllTryouts)
 			tryouts.POST("", controllers.CreateTryout)
-			
-			// Helper route for options/filtering - must come before :id route to avoid conflict
+
+			// Filter routes - must come before :id route to avoid conflict
+			tryouts.GET("/filter", controllers.FilterTryouts)
 			tryouts.GET("/filter/options", controllers.GetTryoutOptions)
-			
+
 			// Individual tryout routes with ID parameter
 			tryouts.GET("/:id", controllers.GetTryout)
 			tryouts.PUT("/:id", controllers.UpdateTryout)
 			tryouts.DELETE("/:id", controllers.DeleteTryout)
+
+			// Question routes
+			tryouts.GET("/:id/questions", controllers.GetQuestionsByTryoutID)
+			tryouts.POST("/:id/questions", controllers.CreateQuestion)
+			tryouts.PUT("/:id/questions/:questionId", controllers.UpdateQuestion)
+			tryouts.DELETE("/:id/questions/:questionId", controllers.DeleteQuestion)
 		}
 	}
 
