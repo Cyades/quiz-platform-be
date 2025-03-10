@@ -234,3 +234,65 @@ func GetTryoutOptions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"categories": categories})
 }
+
+// FilterTryouts filters tryouts based on query parameters
+func FilterTryouts(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	collection := config.GetCollection(tryoutCollection)
+
+	// Build filter based on query parameters
+	filter := bson.M{}
+
+	// Filter by title (case-insensitive regex search)
+	if title := c.Query("title"); title != "" {
+		filter["title"] = bson.M{"$regex": primitive.Regex{Pattern: title, Options: "i"}}
+	}
+
+	// Filter by category (exact match)
+	if category := c.Query("category"); category != "" {
+		filter["category"] = category
+	}
+
+	// Filter by date range
+	if startDate := c.Query("startDate"); startDate != "" {
+		startTime, err := time.Parse(time.RFC3339, startDate)
+		if err == nil {
+			if filter["createdAt"] == nil {
+				filter["createdAt"] = bson.M{}
+			}
+			filter["createdAt"].(bson.M)["$gte"] = startTime
+		}
+	}
+
+	if endDate := c.Query("endDate"); endDate != "" {
+		endTime, err := time.Parse(time.RFC3339, endDate)
+		if err == nil {
+			if filter["createdAt"] == nil {
+				filter["createdAt"] = bson.M{}
+			}
+			filter["createdAt"].(bson.M)["$lte"] = endTime
+		}
+	}
+
+	// Set options for the find operation
+	findOptions := options.Find()
+	findOptions.SetMaxTime(15 * time.Second)
+
+	cursor, err := collection.Find(ctx, filter, findOptions)
+	if err != nil {
+		log.Printf("Error filtering tryouts: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to filter tryouts: " + err.Error()})
+		return
+	}
+
+	var tryouts []models.Tryout
+	if err = cursor.All(ctx, &tryouts); err != nil {
+		log.Printf("Error decoding tryouts: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode tryouts: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, tryouts)
+}
