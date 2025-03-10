@@ -10,6 +10,7 @@ import (
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 // Database connection variables
@@ -22,7 +23,7 @@ var (
 func ConnectDB() {
 	// Load environment variables
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found")
+		log.Println("No .env file found, will use environment variables")
 	}
 
 	// Create MongoDB connection URI from env variables
@@ -30,33 +31,41 @@ func ConnectDB() {
 	dbName := os.Getenv("DB_NAME")
 
 	if mongoURI == "" {
-		mongoURI = "mongodb://localhost:27017"
+		log.Fatal("MongoDB URI is not set. Please set MONGODB_URI environment variable")
 	}
 	if dbName == "" {
 		dbName = "quiz_platform"
+		log.Println("DB_NAME not specified, using default:", dbName)
 	}
 
-	// Set client options
-	clientOptions := options.Client().ApplyURI(mongoURI)
+	// Set client options with increased timeout for Atlas
+	clientOptions := options.Client().
+		ApplyURI(mongoURI).
+		SetConnectTimeout(30 * time.Second).
+		SetServerSelectionTimeout(20 * time.Second)
 
 	// Connect to MongoDB
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
+	fmt.Println("Connecting to MongoDB Atlas...")
 	var err error
 	Client, err = mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to create client: ", err)
 	}
 
 	// Check the connection
-	err = Client.Ping(ctx, nil)
+	ctxPing, cancelPing := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancelPing()
+
+	err = Client.Ping(ctxPing, readpref.Primary())
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Failed to ping MongoDB: ", err)
 	}
 
 	DB = Client.Database(dbName)
-	fmt.Println("Connected to MongoDB!")
+	fmt.Println("Successfully connected to MongoDB Atlas!")
 }
 
 // GetCollection returns a MongoDB collection
@@ -69,7 +78,11 @@ func CloseDB() {
 	if Client != nil {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		Client.Disconnect(ctx)
-		fmt.Println("Connection to MongoDB closed.")
+
+		if err := Client.Disconnect(ctx); err != nil {
+			log.Printf("Error disconnecting from MongoDB: %v", err)
+		} else {
+			fmt.Println("Connection to MongoDB closed successfully.")
+		}
 	}
 }
