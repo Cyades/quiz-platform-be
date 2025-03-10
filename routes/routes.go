@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"net/http"
 	"quiz-platform/controllers"
 
 	"github.com/gin-contrib/cors"
@@ -20,6 +21,10 @@ func SetupRouter() *gin.Engine {
 		AllowCredentials: true,
 		AllowWildcard:    true,
 	}))
+
+	router.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"message": "Quiz Platform API is running"})
+	})
 
 	// API v1 routes
 	v1 := router.Group("/api/v1")
