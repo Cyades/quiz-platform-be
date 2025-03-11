@@ -29,6 +29,20 @@ func GetQuestionsByTryoutID(c *gin.Context) {
 		return
 	}
 
+	// Check if the tryout exists
+	tryoutCollection := config.GetCollection(tryoutCollection)
+	var tryout models.Tryout
+	err = tryoutCollection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&tryout)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Tryout not found"})
+			return
+		}
+		log.Printf("Error fetching tryout: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tryout: " + err.Error()})
+		return
+	}
+
 	collection := config.GetCollection(questionCollection)
 	findOptions := options.Find()
 	findOptions.SetMaxTime(15 * time.Second)
@@ -36,14 +50,14 @@ func GetQuestionsByTryoutID(c *gin.Context) {
 	cursor, err := collection.Find(ctx, bson.M{"tryoutId": objectID}, findOptions)
 	if err != nil {
 		log.Printf("Error fetching questions: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch questions: " + err.Error()})
+		c.JSON(http.StatusOK, []models.Question{})
 		return
 	}
 
 	var questions []models.Question
 	if err = cursor.All(ctx, &questions); err != nil {
 		log.Printf("Error decoding questions: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode questions: " + err.Error()})
+		c.JSON(http.StatusOK, []models.Question{})
 		return
 	}
 
