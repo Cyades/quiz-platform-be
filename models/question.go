@@ -19,5 +19,5 @@ type Question struct {
 // QuestionInput is used for creating or updating a question
 type QuestionInput struct {
 	Text   string `json:"text" binding:"required"`
-	IsTrue bool   `json:"isTrue" binding:"required"`
+	IsTrue bool   `json:"isTrue"`
 }
