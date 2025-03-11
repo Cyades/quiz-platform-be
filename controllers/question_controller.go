@@ -29,20 +29,6 @@ func GetQuestionsByTryoutID(c *gin.Context) {
 		return
 	}
 
-	// Check if the tryout exists
-	tryoutCollection := config.GetCollection(tryoutCollection)
-	var tryout models.Tryout
-	err = tryoutCollection.FindOne(ctx, bson.M{"_id": objectID}).Decode(&tryout)
-	if err != nil {
-		if err == mongo.ErrNoDocuments {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Tryout not found"})
-			return
-		}
-		log.Printf("Error fetching tryout: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch tryout: " + err.Error()})
-		return
-	}
-
 	collection := config.GetCollection(questionCollection)
 	findOptions := options.Find()
 	findOptions.SetMaxTime(15 * time.Second)
@@ -50,18 +36,64 @@ func GetQuestionsByTryoutID(c *gin.Context) {
 	cursor, err := collection.Find(ctx, bson.M{"tryoutId": objectID}, findOptions)
 	if err != nil {
 		log.Printf("Error fetching questions: %v", err)
-		c.JSON(http.StatusOK, []models.Question{})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch questions: " + err.Error()})
 		return
 	}
 
 	var questions []models.Question
 	if err = cursor.All(ctx, &questions); err != nil {
 		log.Printf("Error decoding questions: %v", err)
-		c.JSON(http.StatusOK, []models.Question{})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to decode questions: " + err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, questions)
+}
+
+// GetQuestionByID returns a specific question by its ID
+func GetQuestionByID(c *gin.Context) {
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+
+	tryoutID := c.Param("id")
+	tryoutObjectID, err := primitive.ObjectIDFromHex(tryoutID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid tryout ID format"})
+		return
+	}
+
+	questionID := c.Param("questionId")
+	questionObjectID, err := primitive.ObjectIDFromHex(questionID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid question ID format"})
+		return
+	}
+
+	collection := config.GetCollection(questionCollection)
+	findOneOptions := options.FindOne()
+	findOneOptions.SetMaxTime(15 * time.Second)
+
+	var question models.Question
+	err = collection.FindOne(
+		ctx,
+		bson.M{
+			"_id":      questionObjectID,
+			"tryoutId": tryoutObjectID,
+		},
+		findOneOptions,
+	).Decode(&question)
+
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Question not found"})
+			return
+		}
+		log.Printf("Error fetching question %s: %v", questionID, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch question: " + err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, question)
 }
 
 // CreateQuestion creates a new question for a tryout

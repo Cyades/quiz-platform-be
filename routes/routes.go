@@ -57,6 +57,7 @@ func SetupRouter() *gin.Engine {
 			tryouts.POST("/:id/questions", controllers.CreateQuestion)
 			tryouts.PUT("/:id/questions/:questionId", controllers.UpdateQuestion)
 			tryouts.DELETE("/:id/questions/:questionId", controllers.DeleteQuestion)
+			tryouts.GET("/:id/questions/:questionId", controllers.GetQuestionByID)
 		}
 	}
 
