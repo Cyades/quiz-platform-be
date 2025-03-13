@@ -255,26 +255,39 @@ func FilterTryouts(c *gin.Context) {
 		filter["category"] = category
 	}
 
+	// Initialize createdAt filter if needed
+	var createdAtFilter bson.M
+
 	// Filter by date range
 	if startDate := c.Query("startDate"); startDate != "" {
 		startTime, err := time.Parse(time.RFC3339, startDate)
-		if err == nil {
-			if filter["createdAt"] == nil {
-				filter["createdAt"] = bson.M{}
+		if err != nil {
+			log.Printf("Error parsing startDate %s: %v", startDate, err)
+		} else {
+			if createdAtFilter == nil {
+				createdAtFilter = bson.M{}
 			}
-			filter["createdAt"].(bson.M)["$gte"] = startTime
+			createdAtFilter["$gte"] = startTime
 		}
 	}
 
 	if endDate := c.Query("endDate"); endDate != "" {
 		endTime, err := time.Parse(time.RFC3339, endDate)
-		if err == nil {
-			if filter["createdAt"] == nil {
-				filter["createdAt"] = bson.M{}
+		if err != nil {
+			log.Printf("Error parsing endDate %s: %v", endDate, err)
+		} else {
+			if createdAtFilter == nil {
+				createdAtFilter = bson.M{}
 			}
-			filter["createdAt"].(bson.M)["$lte"] = endTime
+			createdAtFilter["$lte"] = endTime
 		}
 	}
+
+	if createdAtFilter != nil {
+		filter["createdAt"] = createdAtFilter
+	}
+
+	log.Printf("Applying filter: %+v", filter)
 
 	// Set options for the find operation
 	findOptions := options.Find()
